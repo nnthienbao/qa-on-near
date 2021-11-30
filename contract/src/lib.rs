@@ -13,47 +13,120 @@
 
 // To conserve gas, efficient serialization is achieved through Borsh (http://borsh.io/)
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::collections::{LookupMap, UnorderedMap, LookupSet};
+use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{env, near_bindgen, setup_alloc};
-use near_sdk::collections::LookupMap;
 
 setup_alloc!();
+
+#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct Question {
+  question_id: String,
+  title: String,
+  content: String,
+  total_vote: i32,
+  total_answer: i32,
+  created_time: i64,
+  creator_id: String
+}
+
+#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct Answer {
+  answer_id: String,
+  question_id: String,
+  content: String,
+  total_vote: i32,
+  total_amount_donate: i64,
+  created_time: i64,
+  creator_id: String
+}
+
+#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct DonateInfo {
+  donate_info_id: String,
+  answer_id: String,
+  donate_creator_id: String,
+  created_time: i64,
+  amount: i64
+}
+
+#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct QuestionCreateDto {
+  title: String,
+  content: String,
+}
+
+#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct AnswerCreateDto {
+  question_id: String,
+  content: String,
+}
+
+#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct DonationCreateDto {
+  answer_id: String,
+  amount: i64
+}
 
 // Structs in Rust are similar to other languages, and may include impl keyword as shown below
 // Note: the names of the structs are not important when calling the smart contract, but the function names are
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct Welcome {
-    records: LookupMap<String, String>,
+pub struct QAndANear {
+  map_question: UnorderedMap<String, Question>,
+  map_answer: LookupMap<String, Answer>,
+  map_donation_info: LookupMap<String, DonateInfo>,
+  map_question_answer: LookupMap<String, LookupSet<String>>, // question_id => list answers id
+  map_answer_donation: LookupMap<String, LookupSet<String>> // answer_id => list donation id info
 }
 
-impl Default for Welcome {
+impl Default for QAndANear {
   fn default() -> Self {
     Self {
-      records: LookupMap::new(b"a".to_vec()),
+      map_question: UnorderedMap::new(b"mq".to_vec()),
+      map_answer: LookupMap::new(b"ma".to_vec()),
+      map_donation_info: LookupMap::new(b"md".to_vec()),
+      map_question_answer: LookupMap::new(b"mqa".to_vec()),
+      map_answer_donation: LookupMap::new(b"mad".to_vec())
     }
   }
 }
 
 #[near_bindgen]
-impl Welcome {
-    pub fn set_greeting(&mut self, message: String) {
-        let account_id = env::signer_account_id();
+impl QAndANear {
+  pub fn create_question(question: QuestionCreateDto) -> Option<Question> {
+    None
+  }
 
-        // Use env::log to record logs permanently to the blockchain!
-        env::log(format!("Saving greeting '{}' for account '{}'", message, account_id,).as_bytes());
+  pub fn create_answer(answer: AnswerCreateDto) -> Option<Answer> {
+    None
+  }
 
-        self.records.insert(&account_id, &message);
-    }
+  pub fn donate(donation: DonationCreateDto) -> Option<DonateInfo> {
+    None
+  }
 
-    // `match` is similar to `switch` in other languages; here we use it to default to "Hello" if
-    // self.records.get(&account_id) is not yet defined.
-    // Learn more: https://doc.rust-lang.org/book/ch06-02-match.html#matching-with-optiont
-    pub fn get_greeting(&self, account_id: String) -> String {
-        match self.records.get(&account_id) {
-            Some(greeting) => greeting,
-            None => "Hello".to_string(),
-        }
-    }
+  pub fn get_list_question() -> Vec<Question> {
+    return Vec::new();
+  }
+
+  pub fn get_question_detail(question_id: String) -> Option<Question> {
+    None
+  }
+
+  pub fn get_list_answer_for_question(question_id: String) -> Vec<Answer> {
+    return Vec::new();
+  }
+
+  pub fn get_donate_history(answer_id: String) -> Vec<DonateInfo> {
+    return Vec::new();
+  }
 }
 
 /*
@@ -69,53 +142,36 @@ impl Welcome {
  */
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use near_sdk::MockedBlockchain;
-    use near_sdk::{testing_env, VMContext};
+  use super::*;
+  use near_sdk::MockedBlockchain;
+  use near_sdk::{testing_env, VMContext};
 
-    // mock the context for testing, notice "signer_account_id" that was accessed above from env::
-    fn get_context(input: Vec<u8>, is_view: bool) -> VMContext {
-        VMContext {
-            current_account_id: "alice_near".to_string(),
-            signer_account_id: "bob_near".to_string(),
-            signer_account_pk: vec![0, 1, 2],
-            predecessor_account_id: "carol_near".to_string(),
-            input,
-            block_index: 0,
-            block_timestamp: 0,
-            account_balance: 0,
-            account_locked_balance: 0,
-            storage_usage: 0,
-            attached_deposit: 0,
-            prepaid_gas: 10u64.pow(18),
-            random_seed: vec![0, 1, 2],
-            is_view,
-            output_data_receivers: vec![],
-            epoch_height: 19,
-        }
+  // mock the context for testing, notice "signer_account_id" that was accessed above from env::
+  fn get_context(input: Vec<u8>, is_view: bool) -> VMContext {
+    VMContext {
+      current_account_id: "alice_near".to_string(),
+      signer_account_id: "bob_near".to_string(),
+      signer_account_pk: vec![0, 1, 2],
+      predecessor_account_id: "carol_near".to_string(),
+      input,
+      block_index: 0,
+      block_timestamp: 0,
+      account_balance: 0,
+      account_locked_balance: 0,
+      storage_usage: 0,
+      attached_deposit: 0,
+      prepaid_gas: 10u64.pow(18),
+      random_seed: vec![0, 1, 2],
+      is_view,
+      output_data_receivers: vec![],
+      epoch_height: 19,
     }
+  }
 
-    #[test]
-    fn set_then_get_greeting() {
-        let context = get_context(vec![], false);
-        testing_env!(context);
-        let mut contract = Welcome::default();
-        contract.set_greeting("howdy".to_string());
-        assert_eq!(
-            "howdy".to_string(),
-            contract.get_greeting("bob_near".to_string())
-        );
-    }
-
-    #[test]
-    fn get_default_greeting() {
-        let context = get_context(vec![], true);
-        testing_env!(context);
-        let contract = Welcome::default();
-        // this test did not call set_greeting so should return the default "Hello" greeting
-        assert_eq!(
-            "Hello".to_string(),
-            contract.get_greeting("francis.near".to_string())
-        );
-    }
+  #[test]
+  fn test_default() {
+    let context = get_context(vec![], false);
+    testing_env!(context);
+    QAndANear::default();
+  }
 }
