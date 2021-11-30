@@ -62,6 +62,6 @@ method:
         + get_list_question() : List<Question>
         + get_question_detail(question_id: String) : Question
         + get_list_answer_for_question(question_id: String) : List<Answer>
-        + get_donate_history(answer_id: String) : List<DonateInfo>
+        + get_donate_history(answer_id: String) : List<>
 
 
