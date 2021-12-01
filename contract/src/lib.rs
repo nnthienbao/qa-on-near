@@ -140,7 +140,9 @@ impl QAndANear {
             .map_question
             .insert(&answer.question_id.clone(), &question);
           set_question_answer.insert(&answer_save.answer_id);
-          self.map_question_answer.insert(&answer.question_id, &set_question_answer);
+          self
+            .map_question_answer
+            .insert(&answer.question_id, &set_question_answer);
           self.map_answer_donation.insert(
             &answer_save.answer_id,
             &UnorderedSet::new(env::sha256(&answer_save.answer_id.as_bytes())),
@@ -259,6 +261,30 @@ impl QAndANear {
           }
         }
         return vec_ret;
+      }
+      None => {
+        env::panic(format!("Answer with answer_id {} not found", answer_id).as_bytes());
+      }
+    }
+  }
+
+  pub fn vote_question(&mut self, question_id: String) -> Option<Question> {
+    match self.map_question.get(&question_id) {
+      Some(mut question) => {
+        question.total_vote += 1;
+        return self.map_question.insert(&question_id, &question);
+      }
+      None => {
+        env::panic(format!("Question with question_id {} not found", question_id).as_bytes());
+      }
+    }
+  }
+
+  pub fn vote_answer(&mut self, answer_id: String) -> Option<Answer> {
+    match self.map_answer.get(&answer_id) {
+      Some(mut answer) => {
+        answer.total_vote += 1;
+        return self.map_answer.insert(&answer_id, &answer);
       }
       None => {
         env::panic(format!("Answer with answer_id {} not found", answer_id).as_bytes());
@@ -406,14 +432,20 @@ mod tests {
 
     let donation_dto = DonationCreateDto {
       answer_id: answer_created.answer_id.clone(),
-      amount: 10
+      amount: 10,
     };
     let ret_op_donation_created = contract.donate(donation_dto);
     assert_eq!(ret_op_donation_created.is_some(), true);
     let donation_created = ret_op_donation_created.unwrap();
     assert_eq!(donation_created.donate_info_id.is_empty(), false);
-    assert_eq!(donation_created.answer_id.clone(), answer_created.answer_id.clone());
-    assert_eq!(donation_created.donate_creator_id.clone(), "bob_near".to_string());
+    assert_eq!(
+      donation_created.answer_id.clone(),
+      answer_created.answer_id.clone()
+    );
+    assert_eq!(
+      donation_created.donate_creator_id.clone(),
+      "bob_near".to_string()
+    );
     assert_eq!(donation_created.amount, 10);
 
     let ret_op_answer_after_donate = contract.get_answer_detail(answer_created.answer_id.clone());
@@ -423,7 +455,7 @@ mod tests {
 
     let donation_dto_2 = DonationCreateDto {
       answer_id: answer_created.answer_id.clone(),
-      amount: 4
+      amount: 4,
     };
     contract.donate(donation_dto_2);
     let ret_op_answer_after_donate = contract.get_answer_detail(answer_created.answer_id.clone());
@@ -447,7 +479,6 @@ mod tests {
       content: "Test content 2".to_string(),
     };
     contract.create_question(question_dto_2);
-    
     let list_questions = contract.get_list_question();
     assert_eq!(list_questions.len(), 2);
   }
@@ -502,18 +533,18 @@ mod tests {
 
     let donation_dto_1 = DonationCreateDto {
       answer_id: answer_created_1.answer_id.clone(),
-      amount: 10
+      amount: 10,
     };
     contract.donate(donation_dto_1);
     let donation_dto_1_1 = DonationCreateDto {
       answer_id: answer_created_1.answer_id.clone(),
-      amount: 14
+      amount: 14,
     };
     contract.donate(donation_dto_1_1);
 
     let donation_dto_2 = DonationCreateDto {
       answer_id: answer_created_2.answer_id.clone(),
-      amount: 1
+      amount: 1,
     };
     contract.donate(donation_dto_2);
 

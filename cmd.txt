@@ -8,94 +8,26 @@ dev-1638288482433-31324609140057
 export ACCOUNT_ID=rubikone.testnet
 
 near call qa.rubikone.testnet create_question '{"question":{"title":"Price of NEAR at the end of the year","content":"What is the price of NEAR at the end of the year?"}}' --accountId $ACCOUNT_ID
-https://explorer.testnet.near.org/transactions/GWeTPBxWFutqAn1rWBAoHZTQiqYq4HPpAzctrbbFEWiR
-{
-  question_id: '1638369150465094958',
-  title: 'Price of NEAR at the end of the year',
-  content: 'What is the price of NEAR at the end of the year?',
-  total_vote: 0,
-  total_answer: 0,
-  created_time: 1638316800000,
-  creator_id: 'rubikone.testnet'
-}
+https://explorer.testnet.near.org/transactions/Bbu7Jftc1JBE8Ctdn1P26rSEPsv1j2eYc41MJjaAhrqU
 
-near call qa.rubikone.testnet create_answer '{"answer":{"question_id":"1638369150465094958","content":"I am sure over 30 usd"}}' --accountId $ACCOUNT_ID
-https://explorer.testnet.near.org/transactions/9QjkmTddCppk5M27eBT8y6usS6eKXCRcJwFoHHmUCtfo
-{
-  answer_id: '1638369557795025579',
-  question_id: '1638369150465094958',
-  content: 'I am sure over 30 usd',
-  total_vote: 0,
-  total_amount_donate: 0,
-  created_time: 1638316800000,
-  creator_id: 'rubikone.testnet'
-}
+near call qa.rubikone.testnet create_answer '{"answer":{"question_id":"1638371106338209321","content":"I am sure over 30 usd"}}' --accountId $ACCOUNT_ID
+https://explorer.testnet.near.org/transactions/Gntr7x2Q3BR3WCzrpcabLCJmievj3Defm7P3jPf7uDqa
 
-near call qa.rubikone.testnet donate '{"donation":{"answer_id":"1638369557795025579","amount":5}}' --accountId $ACCOUNT_ID
-https://explorer.testnet.near.org/transactions/CHTJSUaja17Qzv5dmGhBvWQQWfPJGBEohtefv7szyp6U
-{
-  donate_info_id: '1638369675869134596',
-  answer_id: '1638369557795025579',
-  donate_creator_id: 'rubikone.testnet',
-  created_time: 1638316800000,
-  amount: 5
-}
+near call qa.rubikone.testnet vote_question '{"question_id":"1638371106338209321"}' --accountId $ACCOUNT_ID
+https://explorer.testnet.near.org/transactions/8ooZ3SjW1XnhHe2EfdXan3SGAbgv1fLTTRFC8NHnZCh
+
+near call qa.rubikone.testnet vote_answer '{"answer_id":"1638371162028607310"}' --accountId $ACCOUNT_ID
+https://explorer.testnet.near.org/transactions/6KJjvQkPq52Z1yGedFH5gxdzKpBKnUyCzkYtWkBzFxeT
+
+near call qa.rubikone.testnet donate '{"donation":{"answer_id":"1638371162028607310","amount":5}}' --accountId $ACCOUNT_ID
+https://explorer.testnet.near.org/transactions/ELYGGd63Zr4ZstAKD4hwfnJ3EHkF8gWMwEVSm3KrT2XH
 
 near view qa.rubikone.testnet get_list_question '' --accountId $ACCOUNT_ID
-[
-  {
-    question_id: '1638369150465094958',
-    title: 'Price of NEAR at the end of the year',
-    content: 'What is the price of NEAR at the end of the year?',
-    total_vote: 0,
-    total_answer: 1,
-    created_time: 1638316800000,
-    creator_id: 'rubikone.testnet'
-  }
-]
 
-near view qa.rubikone.testnet get_question_detail '{"question_id": "1638369150465094958"}' --accountId $ACCOUNT_ID
-{
-  question_id: '1638369150465094958',
-  title: 'Price of NEAR at the end of the year',
-  content: 'What is the price of NEAR at the end of the year?',
-  total_vote: 0,
-  total_answer: 1,
-  created_time: 1638316800000,
-  creator_id: 'rubikone.testnet'
-}
+near view qa.rubikone.testnet get_question_detail '{"question_id": "1638371106338209321"}' --accountId $ACCOUNT_ID
 
-near view qa.rubikone.testnet get_answer_detail '{"answer_id": "1638369557795025579"}' --accountId $ACCOUNT_ID
-{
-  answer_id: '1638369557795025579',
-  question_id: '1638369150465094958',
-  content: 'I am sure over 30 usd',
-  total_vote: 0,
-  total_amount_donate: 5,
-  created_time: 1638316800000,
-  creator_id: 'rubikone.testnet'
-}
+near view qa.rubikone.testnet get_answer_detail '{"answer_id": "1638371162028607310"}' --accountId $ACCOUNT_ID
 
-near view qa.rubikone.testnet get_list_answer_for_question '{"question_id": "1638369150465094958"}' --accountId $ACCOUNT_ID
-[
-  {
-    answer_id: '1638369557795025579',
-    question_id: '1638369150465094958',
-    content: 'I am sure over 30 usd',
-    total_vote: 0,
-    total_amount_donate: 5,
-    created_time: 1638316800000,
-    creator_id: 'rubikone.testnet'
-  }
-]
+near view qa.rubikone.testnet get_list_answer_for_question '{"question_id": "1638371106338209321"}' --accountId $ACCOUNT_ID
 
-near view qa.rubikone.testnet get_donate_history '{"answer_id": "1638369557795025579"}' --accountId $ACCOUNT_ID
-[
-  {
-    donate_info_id: '1638369675869134596',
-    answer_id: '1638369557795025579',
-    donate_creator_id: 'rubikone.testnet',
-    created_time: 1638316800000,
-    amount: 5
-  }
-]
+near view qa.rubikone.testnet get_donate_history '{"answer_id": "1638371162028607310"}' --accountId $ACCOUNT_ID
