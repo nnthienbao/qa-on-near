@@ -40,7 +40,7 @@ pub struct Answer {
   question_id: String,
   content: String,
   total_vote: i32,
-  total_amount_donate: i64,
+  total_amount_donate: u64,
   created_time: i64,
   creator_id: String,
 }
@@ -52,7 +52,7 @@ pub struct DonateInfo {
   answer_id: String,
   donate_creator_id: String,
   created_time: i64,
-  amount: i64,
+  amount: u64,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize)]
@@ -73,7 +73,7 @@ pub struct AnswerCreateDto {
 #[serde(crate = "near_sdk::serde")]
 pub struct DonationCreateDto {
   answer_id: String,
-  amount: i64,
+  amount: u64,
 }
 
 // Structs in Rust are similar to other languages, and may include impl keyword as shown below
@@ -117,27 +117,53 @@ impl QAndANear {
       &question_save.question_id,
       &UnorderedSet::new(env::sha256(&question_save.question_id.as_bytes())),
     );
-    return self
+    self
       .map_question
       .insert(&question_save.question_id, &question_save);
+    return self.map_question.get(&question_save.question_id);
   }
 
   pub fn create_answer(&mut self, answer: AnswerCreateDto) -> Option<Answer> {
     let creator_id = env::signer_account_id();
     let answer_save = Answer {
       answer_id: self.generate_id(),
-      question_id: answer.question_id,
+      question_id: answer.question_id.clone(),
       content: answer.content,
       total_vote: 0,
       total_amount_donate: 0,
       created_time: self.get_current_timestamp_in_millis(),
       creator_id: creator_id,
     };
-    self.map_answer_donation.insert(
-      &answer_save.answer_id,
-      &UnorderedSet::new(env::sha256(&answer_save.answer_id.as_bytes())),
-    );
-    return self.map_answer.insert(&answer_save.answer_id, &answer_save);
+    match self.map_question.get(&answer.question_id.clone()) {
+      Some(mut question) => match self.map_question_answer.get(&answer.question_id.clone()) {
+        Some(mut set_question_answer) => {
+          question.total_answer += 1;
+          self
+            .map_question
+            .insert(&answer.question_id.clone(), &question);
+          set_question_answer.insert(&answer_save.answer_id);
+          self.map_question_answer.insert(&answer.question_id, &set_question_answer);
+          self.map_answer_donation.insert(
+            &answer_save.answer_id,
+            &UnorderedSet::new(env::sha256(&answer_save.answer_id.as_bytes())),
+          );
+          self.map_answer.insert(&answer_save.answer_id, &answer_save);
+          return self.map_answer.get(&answer_save.answer_id);
+        }
+        None => {
+          env::panic(
+            format!(
+              "Set_question_answer not found for question_id {}",
+              answer.question_id
+            )
+            .as_bytes(),
+          );
+        }
+      },
+      None => {
+        env::panic(format!("Question not found for question_id {}", answer.question_id).as_bytes());
+      }
+    }
   }
 
   pub fn donate(&mut self, donation: DonationCreateDto) -> Option<DonateInfo> {
@@ -168,9 +194,10 @@ impl QAndANear {
             answer.total_amount_donate += donation.amount;
             self.map_answer.insert(&answer.answer_id, &answer);
             self.map_answer_donation.insert(&answer_id, &set_donation);
-            return self
+            self
               .map_donation_info
               .insert(&donation_save.donate_info_id, &donation_save);
+            return self.map_donation_info.get(&donation_save.donate_info_id);
           }
           None => {
             env::panic(
@@ -195,6 +222,10 @@ impl QAndANear {
 
   pub fn get_question_detail(&self, question_id: String) -> Option<Question> {
     return self.map_question.get(&question_id);
+  }
+
+  pub fn get_answer_detail(&self, answer_id: String) -> Option<Answer> {
+    return self.map_answer.get(&answer_id);
   }
 
   pub fn get_list_answer_for_question(&self, question_id: String) -> Vec<Answer> {
@@ -304,5 +335,102 @@ mod tests {
     let id2 = contract.generate_id();
     println!("{}", id2);
     assert_ne!(id1, id2);
+  }
+
+  #[test]
+  fn should_create_question_success() {
+    let context = get_context(vec![], false);
+    testing_env!(context);
+    let mut contract = QAndANear::default();
+    let question_dto = QuestionCreateDto {
+      title: "Test tiele".to_string(),
+      content: "Test content".to_string(),
+    };
+    let ret = contract.create_question(question_dto);
+    assert_eq!(ret.is_some(), true);
+    let question_created = ret.unwrap();
+    assert_eq!(question_created.title, "Test tiele".to_string());
+    assert_eq!(question_created.content, "Test content".to_string());
+    assert_eq!(question_created.question_id.is_empty(), false);
+    assert_eq!(question_created.creator_id, "bob_near".to_string());
+    assert_eq!(question_created.total_answer, 0);
+    assert_eq!(question_created.total_vote, 0);
+  }
+
+  #[test]
+  fn should_create_answer_success() {
+    let context = get_context(vec![], false);
+    testing_env!(context);
+    let mut contract = QAndANear::default();
+    let question_dto = QuestionCreateDto {
+      title: "Test tiele".to_string(),
+      content: "Test content".to_string(),
+    };
+    let question_created = contract.create_question(question_dto).unwrap();
+    let answer_dto = AnswerCreateDto {
+      question_id: question_created.question_id.clone(),
+      content: "Answer content".to_string(),
+    };
+    let ret = contract.create_answer(answer_dto);
+    assert_eq!(ret.is_some(), true);
+    let answer_created = ret.unwrap();
+    assert_eq!(answer_created.answer_id.is_empty(), false);
+    assert_eq!(answer_created.content.is_empty(), false);
+    assert_eq!(answer_created.creator_id, "bob_near".to_string());
+    assert_eq!(
+      answer_created.question_id.clone(),
+      question_created.question_id.clone()
+    );
+    assert_eq!(answer_created.total_amount_donate, 0);
+    assert_eq!(answer_created.total_vote, 0);
+
+    let ret_op_question_after = contract.get_question_detail(question_created.question_id);
+    assert_eq!(ret_op_question_after.is_some(), true);
+    let question_after = ret_op_question_after.unwrap();
+    assert_eq!(question_after.total_answer, 1);
+  }
+
+  #[test]
+  fn should_donation_success() {
+    let context = get_context(vec![], false);
+    testing_env!(context);
+    let mut contract = QAndANear::default();
+    let question_dto = QuestionCreateDto {
+      title: "Test tiele".to_string(),
+      content: "Test content".to_string(),
+    };
+    let question_created = contract.create_question(question_dto).unwrap();
+    let answer_dto = AnswerCreateDto {
+      question_id: question_created.question_id.clone(),
+      content: "Answer content".to_string(),
+    };
+    let answer_created = contract.create_answer(answer_dto).unwrap();
+
+    let donation_dto = DonationCreateDto {
+      answer_id: answer_created.answer_id.clone(),
+      amount: 10
+    };
+    let ret_op_donation_created = contract.donate(donation_dto);
+    assert_eq!(ret_op_donation_created.is_some(), true);
+    let donation_created = ret_op_donation_created.unwrap();
+    assert_eq!(donation_created.donate_info_id.is_empty(), false);
+    assert_eq!(donation_created.answer_id.clone(), answer_created.answer_id.clone());
+    assert_eq!(donation_created.donate_creator_id.clone(), "bob_near".to_string());
+    assert_eq!(donation_created.amount, 10);
+
+    let ret_op_answer_after_donate = contract.get_answer_detail(answer_created.answer_id.clone());
+    assert_eq!(ret_op_answer_after_donate.is_some(), true);
+    let answer_after_donate = ret_op_answer_after_donate.unwrap();
+    assert_eq!(answer_after_donate.total_amount_donate, 10);
+
+    let donation_dto_2 = DonationCreateDto {
+      answer_id: answer_created.answer_id.clone(),
+      amount: 4
+    };
+    contract.donate(donation_dto_2);
+    let ret_op_answer_after_donate = contract.get_answer_detail(answer_created.answer_id.clone());
+    assert_eq!(ret_op_answer_after_donate.is_some(), true);
+    let answer_after_donate = ret_op_answer_after_donate.unwrap();
+    assert_eq!(answer_after_donate.total_amount_donate, 14);
   }
 }
