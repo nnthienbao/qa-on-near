@@ -433,4 +433,96 @@ mod tests {
     let answer_after_donate = ret_op_answer_after_donate.unwrap();
     assert_eq!(answer_after_donate.total_amount_donate, 14);
   }
+
+  #[test]
+  fn should_get_list_question_success() {
+    let context = get_context(vec![], false);
+    testing_env!(context);
+    let mut contract = QAndANear::default();
+    let question_dto = QuestionCreateDto {
+      title: "Test tiele".to_string(),
+      content: "Test content".to_string(),
+    };
+    contract.create_question(question_dto);
+    let question_dto_2 = QuestionCreateDto {
+      title: "Test tiele 2".to_string(),
+      content: "Test content 2".to_string(),
+    };
+    contract.create_question(question_dto_2);
+    
+    let list_questions = contract.get_list_question();
+    assert_eq!(list_questions.len(), 2);
+  }
+
+  #[test]
+  fn should_get_list_answer_for_question_success() {
+    let context = get_context(vec![], false);
+    testing_env!(context);
+    let mut contract = QAndANear::default();
+    let question_dto = QuestionCreateDto {
+      title: "Test tiele".to_string(),
+      content: "Test content".to_string(),
+    };
+    let question_created = contract.create_question(question_dto).unwrap();
+    let answer_dto = AnswerCreateDto {
+      question_id: question_created.question_id.clone(),
+      content: "Answer content".to_string(),
+    };
+    contract.create_answer(answer_dto);
+
+    let answer_dto_2 = AnswerCreateDto {
+      question_id: question_created.question_id.clone(),
+      content: "Answer content_2".to_string(),
+    };
+    contract.create_answer(answer_dto_2);
+
+    let list_answers = contract.get_list_answer_for_question(question_created.question_id.clone());
+    assert_eq!(list_answers.len(), 2);
+  }
+
+  #[test]
+  fn should_get_donate_history_success() {
+    let context = get_context(vec![], false);
+    testing_env!(context);
+    let mut contract = QAndANear::default();
+    let question_dto = QuestionCreateDto {
+      title: "Test tiele".to_string(),
+      content: "Test content".to_string(),
+    };
+    let question_created = contract.create_question(question_dto).unwrap();
+    let answer_dto_1 = AnswerCreateDto {
+      question_id: question_created.question_id.clone(),
+      content: "Answer content".to_string(),
+    };
+    let answer_created_1 = contract.create_answer(answer_dto_1).unwrap();
+
+    let answer_dto_2 = AnswerCreateDto {
+      question_id: question_created.question_id.clone(),
+      content: "Answer content_2".to_string(),
+    };
+    let answer_created_2 = contract.create_answer(answer_dto_2).unwrap();
+
+    let donation_dto_1 = DonationCreateDto {
+      answer_id: answer_created_1.answer_id.clone(),
+      amount: 10
+    };
+    contract.donate(donation_dto_1);
+    let donation_dto_1_1 = DonationCreateDto {
+      answer_id: answer_created_1.answer_id.clone(),
+      amount: 14
+    };
+    contract.donate(donation_dto_1_1);
+
+    let donation_dto_2 = DonationCreateDto {
+      answer_id: answer_created_2.answer_id.clone(),
+      amount: 1
+    };
+    contract.donate(donation_dto_2);
+
+    let list_donation_1 = contract.get_donate_history(answer_created_1.answer_id.clone());
+    assert_eq!(list_donation_1.len(), 2);
+
+    let list_donation_2 = contract.get_donate_history(answer_created_2.answer_id.clone());
+    assert_eq!(list_donation_2.len(), 1);
+  }
 }
