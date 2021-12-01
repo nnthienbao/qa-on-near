@@ -17,8 +17,6 @@ use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{env, near_bindgen, setup_alloc};
 
-use nanoid::nanoid;
-
 setup_alloc!();
 
 #[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize)]
@@ -270,7 +268,7 @@ impl QAndANear {
 
   #[private]
   pub fn generate_id(&self) -> String {
-    return nanoid!();
+    return env::block_timestamp().to_string();
   }
 
   #[private]
